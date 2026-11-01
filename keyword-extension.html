@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Keyword Extraction - Text Corpus</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    :root {
+      --glass-bg: rgba(255, 255, 255, 0.25);
+      --glass-border: rgba(255, 255, 255, 0.6);
+      --glass-border-hover: #fff;
+      --glass-shadow: 0 8px 32px 0 rgba(0, 119, 182, 0.2);
+      --glass-inset: inset 0 0 15px rgba(255, 255, 255, 0.5);
+      --text-main: #023e8a;
+      --text-hover: #0077b6;
+      --text-active: #fff;
+      --bg-deep: #0077b6;
+      --bubble-bg: linear-gradient(135deg, #0096c7, #0077b6, #023e8a);
+      --bubble-shadow: 0 10px 25px rgba(0, 119, 182, 0.5), inset 0 2px 5px rgba(255, 255, 255, 0.3);
+      --panel-bg: rgba(255, 255, 255, 0.35);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Poppins", sans-serif; -webkit-tap-highlight-color: transparent; }
+    html, body { overflow-x: hidden; }
+    html { background: #4fc3f7; }
+    body { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; padding: 20px; position: relative; }
+    body.no-scroll, html:has(body.no-scroll) { overflow: hidden; }
+
+    @keyframes bgShift { 0%, 100% { background-position: 0 50%; } 50% { background-position: 100% 50%; } }
+    .liquid-bg { position: fixed; inset: 0; overflow: hidden; z-index: -1; pointer-events: none; background: linear-gradient(135deg, #b3e5fc, #4fc3f7, #0288d1); background-size: 300% 300%; animation: bgShift 18s ease infinite; }
+    .center-glow { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 120vw; height: 120vh; background: radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(144, 224, 239, 0.4) 40%, transparent 70%); filter: blur(40px); }
+    .static-bubble { position: absolute; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #fff, #90e0ef, #0077b6); box-shadow: inset 10px 10px 20px rgba(255, 255, 255, 0.9), inset -10px -10px 20px rgba(0, 0, 0, 0.2), 0 15px 35px rgba(0, 119, 182, 0.4); animation: bf 9s ease-in-out infinite; }
+    .bubble-1 { width: 180px; height: 180px; top: -40px; left: -40px; }
+    .bubble-2 { width: 120px; height: 120px; top: 10%; right: -30px; animation-direction: reverse; }
+    .bubble-3 { width: 140px; height: 140px; bottom: -50px; left: 5%; }
+    @keyframes bf { 50% { transform: translate(10px, -20px); } }
+
+    /* Header */
+    .header-container { width: 100%; max-width: 1250px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; gap: 20px; position: relative; z-index: 10; }
+    .menu-toggle { display: none; background: var(--glass-bg); border: 2px solid var(--glass-border); color: var(--text-main); font-size: 20px; width: 45px; height: 45px; border-radius: 12px; cursor: pointer; box-shadow: var(--glass-shadow), var(--glass-inset); align-items: center; justify-content: center; }
+    .logo-container img { height: 125px; width: auto; max-width: 100%; object-fit: contain; filter: drop-shadow(0 10px 15px rgba(0, 62, 138, 0.3)); }
+    .right-section { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0; }
+    .search-container { position: relative; width: 350px; }
+    .search-container input { width: 100%; padding: 10px 20px 10px 45px; border-radius: 50px; border: 2px solid var(--glass-border); background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); color: var(--text-main); font-size: 13px; font-weight: 600; outline: none; box-shadow: var(--glass-shadow), var(--glass-inset); transition: all 0.4s; }
+    .search-container input::placeholder { color: rgba(2, 62, 138, 0.6); font-weight: 500; }
+    .search-container input:focus { background: rgba(255, 255, 255, 0.85); border-color: #fff; transform: translateY(-2px); }
+    .search-container i { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: var(--text-main); opacity: 0.7; }
+
+    /* Layout */
+    .main-dashboard { display: flex; width: 100%; max-width: 1250px; margin: 20px auto; gap: 25px; z-index: 10; align-items: flex-start; }
+    .sidebar { width: 280px; background: var(--glass-bg); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 2px solid var(--glass-border); border-radius: 25px; padding: 20px 15px; box-shadow: var(--glass-shadow), var(--glass-inset); flex-shrink: 0; z-index: 100; }
+    .sidebar-header { display: none; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid rgba(0, 119, 182, 0.2); }
+    .sidebar-header h3 { color: var(--text-main); font-size: 18px; }
+    .sidebar-header button { background: none; border: none; font-size: 22px; color: var(--text-main); cursor: pointer; }
+    .sidebar-menu { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .sidebar-item a { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-radius: 15px; text-decoration: none; color: var(--text-main); font-weight: 600; font-size: 14px; transition: all 0.3s; border: 2px solid transparent; }
+    .sidebar-item a i { width: 20px; text-align: center; }
+    .sidebar-item a:hover { background: rgba(255, 255, 255, 0.5); color: var(--text-hover); border-color: rgba(255, 255, 255, 0.8); }
+    .sidebar-item.active a { background: var(--bubble-bg); color: var(--text-active); box-shadow: 0 8px 20px rgba(0, 119, 182, 0.4); border-color: rgba(255, 255, 255, 0.3); }
+
+    .right-column { display: flex; flex-direction: column; gap: 25px; flex-grow: 1; min-width: 0; width: 100%; }
+
+    /* Feature Cards */
+    .preprocessing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; width: 100%; }
+    .feature-card { background: var(--glass-bg); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 2px solid var(--glass-border); border-radius: 20px; padding: 24px 18px; text-align: center; box-shadow: var(--glass-shadow), var(--glass-inset); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; color: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; user-select: none; }
+    .feature-card:hover { transform: translateY(-5px); border-color: var(--glass-border-hover); box-shadow: 0 15px 35px rgba(0, 119, 182, 0.3), var(--glass-inset); }
+    .feature-card i { font-size: 34px; margin-bottom: 12px; display: inline-block; background: linear-gradient(135deg, #0077b6, #023e8a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .feature-card:nth-child(1) i { background: linear-gradient(135deg, #0096c7, #0077b6); -webkit-background-clip: text; }
+    .feature-card:nth-child(2) i { background: linear-gradient(135deg, #4361ee, #023e8a); -webkit-background-clip: text; }
+    .feature-card:nth-child(3) i { background: linear-gradient(135deg, #7209b7, #480ca8); -webkit-background-clip: text; }
+    .feature-card:nth-child(4) i { background: linear-gradient(135deg, #38b000, #007200); -webkit-background-clip: text; }
+    .feature-card:nth-child(5) i { background: linear-gradient(135deg, #f4a261, #e76f51); -webkit-background-clip: text; }
+    .feature-card:nth-child(6) i { background: linear-gradient(135deg, #9d4edd, #5a189a); -webkit-background-clip: text; }
+    .feature-card h4 { color: var(--text-main); font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .feature-card p { color: var(--text-hover); font-size: 11px; font-weight: 500; line-height: 1.4; }
+    .feature-card .on-badge { position: absolute; top: 10px; right: 10px; width: 10px; height: 10px; border-radius: 50%; background: rgba(2, 62, 138, 0.15); transition: 0.3s; }
+    .feature-card.on .on-badge { background: #38b000; box-shadow: 0 0 8px #38b000; }
+    .feature-card.on { border-color: rgba(56, 176, 0, 0.5); }
+
+    /* Panels */
+    .glass-panel { background: var(--panel-bg); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 2px solid var(--glass-border); border-radius: 25px; padding: 20px; box-shadow: var(--glass-shadow), var(--glass-inset); }
+    .section-header { display: flex; align-items: center; gap: 10px; color: var(--text-main); font-size: 16px; font-weight: 700; margin-bottom: 15px; }
+    .section-header i { color: var(--bg-deep); }
+    .workspace-container { display: flex; gap: 20px; align-items: stretch; }
+    .input-section { flex: 2; display: flex; flex-direction: column; min-width: 0; }
+    .options-section { flex: 1; min-width: 280px; }
+
+    /* Tabs */
+    .input-tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+    .input-tab { background: rgba(255, 255, 255, 0.5); border: 2px solid transparent; padding: 8px 16px; border-radius: 20px; color: var(--text-main); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.3s; }
+    .input-tab:hover { background: rgba(255, 255, 255, 0.8); }
+    .input-tab.active { background: var(--bubble-bg); color: #fff; box-shadow: 0 4px 15px rgba(0, 119, 182, 0.3); border-color: rgba(255, 255, 255, 0.3); }
+
+    textarea { width: 100%; flex-grow: 1; min-height: 170px; background: rgba(255, 255, 255, 0.6); border: 2px solid transparent; border-radius: 15px; padding: 15px; font-size: 14px; color: var(--text-main); outline: none; resize: vertical; transition: 0.3s; margin-bottom: 10px; }
+    textarea:focus { background: rgba(255, 255, 255, 0.9); border-color: #fff; }
+    textarea::placeholder { color: rgba(2, 62, 138, 0.5); }
+    .char-counter { text-align: right; font-size: 11px; color: var(--text-hover); font-weight: 500; margin-bottom: 15px; }
+    .input-actions { display: flex; gap: 15px; align-items: center; }
+    .btn-clear { background: rgba(255, 255, 255, 0.7); border: 2px solid transparent; padding: 10px 20px; border-radius: 15px; color: var(--text-main); font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.3s; }
+    .btn-clear:hover { background: #fff; border-color: rgba(0, 119, 182, 0.2); }
+    .btn-process { flex-grow: 1; background: linear-gradient(135deg, #00b4d8, #0077b6); border: 2px solid rgba(255, 255, 255, 0.4); padding: 12px 20px; border-radius: 15px; color: #fff; font-weight: 700; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 20px rgba(0, 119, 182, 0.4); transition: 0.3s; position: relative; overflow: hidden; }
+    .btn-process:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(0, 119, 182, 0.5); }
+    .btn-process:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+    .btn-process::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent); transform: rotate(45deg); animation: shine 3s infinite; }
+    @keyframes shine { 0% { transform: translateX(-100%) rotate(45deg); } 100% { transform: translateX(100%) rotate(45deg); } }
+
+    /* Preset buttons */
+    .preset-buttons { display: flex; gap: 8px; margin-bottom: 15px; }
+    .preset-btn { flex: 1; background: rgba(255, 255, 255, 0.5); border: 2px solid transparent; border-radius: 12px; padding: 8px 10px; font-size: 12px; font-weight: 600; color: var(--text-main); cursor: pointer; transition: all 0.3s ease; font-family: 'Poppins', sans-serif; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .preset-btn:hover { background: rgba(255, 255, 255, 0.8); border-color: rgba(255, 255, 255, 0.6); }
+    .preset-btn.active { background: var(--bubble-bg); color: var(--text-active); border-color: rgba(255, 255, 255, 0.3); box-shadow: 0 4px 12px rgba(0, 119, 182, 0.3); }
+    .preset-btn i { font-size: 11px; }
+
+    /* Toggles */
+    .toggle-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+    .toggle-item { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+    .toggle-label { display: flex; align-items: center; gap: 8px; color: var(--text-main); font-size: 13px; font-weight: 600; }
+    .toggle-label i { color: var(--bg-deep); width: 18px; text-align: center; }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; inset: 0; background: rgba(2, 62, 138, 0.2); transition: 0.4s; border-radius: 34px; border: 1px solid rgba(255, 255, 255, 0.4); }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 2px; bottom: 2px; background: #fff; transition: 0.4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); }
+    input:checked + .slider { background: linear-gradient(135deg, #0096c7, #0077b6); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    /* Extraction Options */
+    .option-group { padding: 8px 0; border-bottom: 1px solid rgba(0, 119, 182, 0.1); }
+    .option-group:last-child { border-bottom: none; }
+    .option-label { display: flex; justify-content: space-between; align-items: center; color: var(--text-main); font-size: 13px; font-weight: 600; gap: 10px; }
+    .option-label span i { color: var(--bg-deep); width: 18px; text-align: center; margin-right: 6px; }
+    .option-label b { color: var(--text-hover); font-size: 13px; }
+    .method-select { display: flex; gap: 6px; margin-top: 8px; }
+    .method-btn { flex: 1; background: rgba(255, 255, 255, 0.5); border: 2px solid transparent; border-radius: 12px; padding: 7px 4px; font-size: 12px; font-weight: 600; color: var(--text-main); cursor: pointer; transition: 0.3s; }
+    .method-btn.active { background: var(--bubble-bg); color: #fff; border-color: rgba(255, 255, 255, 0.3); }
+    input[type="range"] { width: 100%; margin-top: 8px; accent-color: #0077b6; }
+
+    /* Stats */
+    .stats-container { display: flex; gap: 15px; }
+    .stat-card { flex: 1; background: var(--glass-bg); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 2px solid var(--glass-border); border-radius: 20px; padding: 15px 20px; box-shadow: var(--glass-shadow), var(--glass-inset); min-width: 140px; }
+    .stat-info { display: flex; align-items: center; gap: 10px; color: var(--text-main); font-size: 13px; font-weight: 600; }
+    .stat-info i { font-size: 18px; }
+    .stat-card:nth-child(1) i { color: #0077b6; }
+    .stat-card:nth-child(2) i { color: #00b4d8; }
+    .stat-card:nth-child(3) i { color: #7209b7; }
+    .stat-card:nth-child(4) i { color: #ffa500; }
+    .stat-value { font-size: 28px; font-weight: 700; color: var(--text-main); margin-top: 5px; }
+
+    /* Results */
+    .results-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+    .results-head .section-header { margin: 0; }
+    .result-actions { display: flex; gap: 8px; }
+    .mini-btn { background: rgba(255, 255, 255, 0.7); border: 2px solid transparent; border-radius: 12px; padding: 7px 14px; font-size: 12px; font-weight: 600; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.3s; }
+    .mini-btn:hover { background: #fff; border-color: rgba(0, 119, 182, 0.2); }
+    .results-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; }
+    .kw-list { display: flex; flex-direction: column; gap: 8px; list-style: none; }
+    .kw-row { display: grid; grid-template-columns: 28px 1fr 46px; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.55); border-radius: 14px; padding: 9px 12px; }
+    .kw-rank { font-weight: 700; color: var(--text-hover); font-size: 13px; }
+    .kw-name { font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 4px; word-break: break-word; }
+    .kw-bar { height: 6px; border-radius: 6px; background: rgba(2, 62, 138, 0.12); overflow: hidden; }
+    .kw-bar i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, #48cae4, #0077b6); transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
+    .kw-score { font-size: 12px; font-weight: 700; color: var(--text-main); text-align: right; }
+    .chip-cloud { display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
+    .chip { background: rgba(255, 255, 255, 0.6); border: 2px solid rgba(255, 255, 255, 0.9); color: var(--text-main); padding: 5px 14px; border-radius: 50px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+    .chip:hover { background: var(--bubble-bg); color: #fff; }
+    .sub-title { font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; }
+    .empty { grid-column: 1/-1; text-align: center; color: var(--text-hover); font-size: 14px; font-weight: 500; padding: 30px 10px; }
+    .empty i { display: block; font-size: 34px; margin-bottom: 10px; opacity: 0.6; }
+
+    /* Footer */
+    .footer-wrapper { width: 100%; max-width: 1250px; margin: 40px auto 10px; z-index: 10; position: relative; }
+    .footer-container { background: var(--glass-bg); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 2px solid var(--glass-border); border-radius: 25px; padding: 25px 30px; box-shadow: var(--glass-shadow), var(--glass-inset); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
+    .footer-brand { display: flex; align-items: center; gap: 10px; color: var(--text-main); font-size: 15px; font-weight: 700; }
+    .footer-brand img { height: 80px; width: auto; object-fit: contain; }
+    .footer-links { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+    .footer-links a { color: var(--text-hover); text-decoration: none; font-size: 13px; font-weight: 600; }
+    .footer-links a:hover { color: var(--text-main); }
+    .footer-subscribe { flex-grow: 1; max-width: 400px; }
+    .subscribe-form { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.4); border: 2px solid var(--glass-border); border-radius: 50px; padding: 4px 4px 4px 15px; width: 100%; transition: 0.3s; }
+    .subscribe-form:focus-within { background: rgba(255, 255, 255, 0.85); border-color: #fff; }
+    .subscribe-form i { color: var(--text-main); opacity: 0.7; font-size: 14px; }
+    .subscribe-input { border: none; background: transparent; outline: none; color: var(--text-main); font-size: 13px; font-weight: 500; flex: 1; min-width: 0; padding: 4px 8px 4px 0; }
+    .subscribe-btn { background: var(--bubble-bg); border: 2px solid rgba(255, 255, 255, 0.4); color: #fff; font-weight: 700; font-size: 12px; padding: 8px 18px; border-radius: 50px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px rgba(0, 119, 182, 0.3); white-space: nowrap; }
+    .footer-copy { width: 100%; text-align: center; padding-top: 15px; border-top: 1px solid rgba(0, 119, 182, 0.15); color: var(--text-hover); font-size: 12px; font-weight: 500; }
+    .footer-copy span { font-weight: 700; color: var(--bg-deep); }
+
+    .overlay { position: fixed; inset: 0; background: transparent; z-index: 998; opacity: 0; visibility: hidden; transition: 0.4s; }
+    .overlay.active { opacity: 1; visibility: visible; }
+    .toast { position: fixed; bottom: 30px; left: 50%; transform: translate(-50%, 40px); background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 2px solid #fff; color: var(--text-main); font-weight: 600; font-size: 13px; padding: 12px 22px; border-radius: 50px; box-shadow: var(--glass-shadow); opacity: 0; transition: 0.4s; z-index: 99999; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .header-container, .main-dashboard { z-index: auto; }
+      .overlay { z-index: 9998; }
+      .header-container { flex-direction: column; gap: 15px; padding: 15px; }
+      .menu-toggle { display: flex; position: fixed; top: 25px; right: 25px; z-index: 10000; }
+      .logo-container img { height: 115px; }
+      .right-section { align-items: center; width: 100%; }
+      .search-container { width: 100%; max-width: 450px; }
+      .main-dashboard { flex-direction: column; align-items: center; }
+      .sidebar { position: fixed; top: 0; left: 0; height: 100dvh; width: min(300px, 85vw); z-index: 9999; border-radius: 0 25px 25px 0; background: linear-gradient(150deg, rgba(179, 229, 252, 0.55), rgba(144, 224, 239, 0.5) 45%, rgba(72, 202, 228, 0.55)); transform: translateX(-100%); transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1); overflow-y: auto; border-left: none; overscroll-behavior: contain; pointer-events: none; }
+      .sidebar.active { transform: translateX(0); pointer-events: auto; }
+      .sidebar-header { display: flex; }
+      .workspace-container { flex-direction: column; }
+      .options-section { min-width: 0; }
+      .stats-container { flex-wrap: wrap; }
+      .stat-card { flex: 1 1 40%; }
+      .preprocessing-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+      body { padding: 10px; }
+      .logo-container img { height: 100px; }
+      .menu-toggle { top: 20px; right: 20px; width: 40px; height: 40px; }
+      .results-grid { grid-template-columns: 1fr; }
+      .stats-container { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+      .stat-card { flex: 0 0 auto; width: 150px; }
+      .footer-container { flex-direction: column; text-align: center; padding: 20px; }
+      .footer-links { justify-content: center; }
+      .footer-subscribe { width: 100%; max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .logo-container img { height: 90px; }
+      .input-tab { flex-grow: 1; justify-content: center; font-size: 11px; }
+      .footer-brand img { height: 74px; }
+      .preprocessing-grid { grid-template-columns: 1fr; }
+      .feature-card { padding: 25px 15px; }
+      .feature-card i { font-size: 26px; }
+      .preset-btn { font-size: 11px; padding: 7px 6px; }
+      .preset-btn i { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="liquid-bg">
+    <div class="center-glow"></div>
+    <div class="static-bubble bubble-1"></div>
+    <div class="static-bubble bubble-2"></div>
+    <div class="static-bubble bubble-3"></div>
+  </div>
+  <div class="overlay" id="overlay"></div>
+
+  <!-- NAVBAR -->
+  <div class="header-container">
+    <button class="menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
+      <i class="fas fa-bars"></i>
+    </button>
+    <div class="logo-container">
+      <img src="logo.png" alt="Text Corpus Logo" />
+    </div>
+    <div class="right-section">
+      <div class="search-container">
+        <i class="fas fa-search"></i><input type="text" placeholder="Search tools..." />
+      </div>
+    </div>
+  </div>
+
+  <div class="main-dashboard">
+    <!-- SIDEBAR (6 items) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h3>Menu</h3>
+        <button id="close-sidebar" aria-label="Close Menu"><i class="fas fa-times"></i></button>
+      </div>
+      <ul class="sidebar-menu" id="sidebar-menu">
+        <li class="sidebar-item"><a href="download.html"><i class="fas fa-download"></i> Download</a></li>
+        <li class="sidebar-item active"><a href="keyword-extension.html"><i class="fas fa-key"></i> Keyword Extension</a></li>
+        <li class="sidebar-item"><a href="preprocessing.html"><i class="fas fa-cog"></i> Preprocessing</a></li>
+        <li class="sidebar-item"><a href="sentiment-analysis.html"><i class="fas fa-smile"></i> Sentiment Analysis</a></li>
+        <li class="sidebar-item"><a href="tokenization.html"><i class="fas fa-cubes"></i> Tokenization</a></li>
+        <li class="sidebar-item"><a href="word-frequency.html"><i class="fas fa-chart-bar"></i> Word Frequency</a></li>
+      </ul>
+    </aside>
+
+    <div class="right-column">
+      <!-- 6 Quick-toggle cards -->
+      <div class="preprocessing-grid" id="featureCards">
+        <div class="feature-card" data-target="opt-lower">
+          <span class="on-badge"></span>
+          <i class="fas fa-font"></i>
+          <h4>Lowercase</h4>
+          <p>Convert all text to lowercase</p>
+        </div>
+        <div class="feature-card" data-target="opt-punct">
+          <span class="on-badge"></span>
+          <i class="fas fa-ellipsis-h"></i>
+          <h4>Punctuation</h4>
+          <p>Remove punctuation marks</p>
+        </div>
+        <div class="feature-card" data-target="opt-stop">
+          <span class="on-badge"></span>
+          <i class="fas fa-minus-circle"></i>
+          <h4>Stopwords</h4>
+          <p>Filter out common words</p>
+        </div>
+        <div class="feature-card" data-target="opt-stem">
+          <span class="on-badge"></span>
+          <i class="fas fa-leaf"></i>
+          <h4>Stemming</h4>
+          <p>Reduce words to root form</p>
+        </div>
+        <div class="feature-card" data-target="opt-lemma">
+          <span class="on-badge"></span>
+          <i class="fas fa-bookmark"></i>
+          <h4>Lemmatization</h4>
+          <p>Reduce to dictionary form</p>
+        </div>
+        <div class="feature-card" data-target="opt-num">
+          <span class="on-badge"></span>
+          <i class="fas fa-hashtag"></i>
+          <h4>Numbers</h4>
+          <p>Remove numeric characters</p>
+        </div>
+      </div>
+
+      <div class="workspace-container">
+        <div class="input-section glass-panel">
+          <div class="section-header">
+            <i class="fas fa-key"></i> Keyword Extraction
+          </div>
+          <div class="input-tabs">
+            <button class="input-tab active" onclick="switchTab(this)">
+              <i class="fas fa-keyboard"></i> Enter Text
+            </button>
+            <button class="input-tab" onclick="switchTab(this)">
+              <i class="fas fa-cloud-upload-alt"></i> Upload File
+            </button>
+            <button class="input-tab" onclick="switchTab(this)">
+              <i class="fas fa-file-alt"></i> Sample Text
+            </button>
+          </div>
+          <input type="file" id="fileInput" accept=".txt,.csv,.json,.md" style="display: none" />
+          <textarea id="text-input" placeholder="Paste text to find its main keywords..." oninput="updateCount()"></textarea>
+          <div class="char-counter">
+            <span id="char-count">0</span> characters
+          </div>
+          <div class="input-actions">
+            <button class="btn-clear" onclick="clearAll()">
+              <i class="fas fa-trash"></i> Clear
+            </button>
+            <button class="btn-process" id="btn-extract" onclick="extract()">
+              <i class="fas fa-key"></i> Extract Keywords
+            </button>
+          </div>
+        </div>
+
+        <div class="options-section glass-panel">
+          <div class="section-header">
+            <i class="fas fa-sliders"></i> Options
+          </div>
+
+          <div class="preset-buttons" id="presetButtons">
+            <button type="button" class="preset-btn active" data-preset="default" title="Recommended default settings">
+              <i class="fas fa-wand-magic-sparkles"></i> Default
+            </button>
+            <button type="button" class="preset-btn" data-preset="all-on" title="Turn all preprocessing on">
+              <i class="fas fa-circle-check"></i> All On
+            </button>
+            <button type="button" class="preset-btn" data-preset="all-off" title="Turn everything off (raw text)">
+              <i class="fas fa-circle-xmark"></i> All Off
+            </button>
+          </div>
+
+          <div class="toggle-list">
+            <div class="toggle-item">
+              <span class="toggle-label"><i class="fas fa-font"></i> Lowercase</span>
+              <label class="switch"><input type="checkbox" id="opt-lower" checked /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <span class="toggle-label"><i class="fas fa-ellipsis-h"></i> Remove Punctuation</span>
+              <label class="switch"><input type="checkbox" id="opt-punct" checked /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <span class="toggle-label"><i class="fas fa-minus-circle"></i> Remove Stopwords</span>
+              <label class="switch"><input type="checkbox" id="opt-stop" checked /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <span class="toggle-label"><i class="fas fa-leaf"></i> Stemming / Group</span>
+              <label class="switch"><input type="checkbox" id="opt-stem" /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <span class="toggle-label"><i class="fas fa-bookmark"></i> Lemmatization</span>
+              <label class="switch"><input type="checkbox" id="opt-lemma" /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <span class="toggle-label"><i class="fas fa-hashtag"></i> Remove Numbers</span>
+              <label class="switch"><input type="checkbox" id="opt-num" checked /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <span class="toggle-label"><i class="fas fa-text-width"></i> Remove Extra Spaces</span>
+              <label class="switch"><input type="checkbox" id="opt-space" checked /><span class="slider"></span></label>
+            </div>
+          </div>
+
+          <div class="section-header" style="margin-top: 10px; margin-bottom: 10px; font-size: 14px; padding-top: 10px; border-top: 1px solid rgba(0,119,182,0.1);">
+            <i class="fas fa-key"></i> Extraction Settings
+          </div>
+
+          <div class="option-group">
+            <div class="option-label">
+              <span><i class="fas fa-wand-magic-sparkles"></i>Method</span>
+            </div>
+            <div class="method-select" id="methods">
+              <button class="method-btn active" data-m="freq">Frequency</button>
+              <button class="method-btn" data-m="tfidf">TF-IDF</button>
+              <button class="method-btn" data-m="rake">RAKE</button>
+            </div>
+          </div>
+          <div class="option-group">
+            <div class="option-label">
+              <span><i class="fas fa-list-ol"></i>Top keywords</span><b id="topn-val">10</b>
+            </div>
+            <input type="range" id="topn" min="3" max="30" value="10" />
+          </div>
+          <div class="option-group">
+            <div class="option-label">
+              <span><i class="fas fa-ruler-horizontal"></i>Min word length</span><b id="minlen-val">3</b>
+            </div>
+            <input type="range" id="minlen" min="2" max="8" value="3" />
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-container">
+        <div class="stat-card">
+          <div class="stat-info"><i class="fas fa-book-open"></i><span>Total Words</span></div>
+          <div class="stat-value" id="s-words">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info"><i class="fas fa-layer-group"></i><span>Unique Words</span></div>
+          <div class="stat-value" id="s-unique">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info"><i class="fas fa-key"></i><span>Keywords Found</span></div>
+          <div class="stat-value" id="s-kw">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info"><i class="fas fa-trophy"></i><span>Top Keyword</span></div>
+          <div class="stat-value" id="s-top" style="font-size: 18px; margin-top: 12px">-</div>
+        </div>
+      </div>
+
+      <div class="glass-panel">
+        <div class="results-head">
+          <div class="section-header">
+            <i class="fas fa-ranking-star"></i> Extracted Keywords
+          </div>
+          <div class="result-actions">
+            <button class="mini-btn" onclick="copyKw()"><i class="fas fa-copy"></i> Copy</button>
+            <button class="mini-btn" onclick="downloadKw()"><i class="fas fa-download"></i> CSV</button>
+          </div>
+        </div>
+        <div class="results-grid" id="results">
+          <div class="empty">
+            <i class="fas fa-key"></i>Add some text and select Extract Keywords to see results here.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-wrapper">
+    <footer class="footer-container">
+      <div class="footer-brand">
+        <img src="logo.png" alt="Text Corpus Logo" /><span>Text Corpus</span>
+      </div>
+      <div class="footer-links">
+        <a href="main.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <div class="footer-subscribe">
+        <form class="subscribe-form" onsubmit="handleSubscribe(event)">
+          <i class="fas fa-envelope"></i>
+          <input type="email" class="subscribe-input" id="subscribe-email" placeholder="Enter your email" required />
+          <button type="submit" class="subscribe-btn"><i class="fas fa-paper-plane"></i> Subscribe</button>
+        </form>
+      </div>
+      <div class="footer-copy">&copy; 2025 <span>Text Corpus</span>. All rights reserved.</div>
+    </footer>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const ALL_OPTS = ["opt-lower", "opt-punct", "opt-stop", "opt-stem", "opt-lemma", "opt-num", "opt-space"];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const toggle = document.getElementById("menu-toggle"),
+        sb = document.getElementById("sidebar"),
+        ov = document.getElementById("overlay");
+      toggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        sb.classList.add("active");
+        ov.classList.add("active");
+        document.body.classList.add("no-scroll");
+        toggle.innerHTML = '<i class="fas fa-times"></i>';
+      });
+      function closeSb() {
+        sb.classList.remove("active");
+        ov.classList.remove("active");
+        document.body.classList.remove("no-scroll");
+        toggle.innerHTML = '<i class="fas fa-bars"></i>';
+      }
+      ov.addEventListener("click", (e) => { if (e.target === ov) closeSb(); });
+      document.getElementById("close-sidebar").addEventListener("click", (e) => { e.stopPropagation(); closeSb(); });
+
+      const syncCards = () => {
+        document.querySelectorAll(".feature-card").forEach((card) => {
+          const input = document.getElementById(card.dataset.target);
+          if (input) card.classList.toggle("on", input.checked);
+        });
+      };
+
+      document.querySelectorAll(".feature-card").forEach((card) => {
+        const input = document.getElementById(card.dataset.target);
+        if (!input) return;
+        card.addEventListener("click", () => {
+          input.checked = !input.checked;
+          syncCards();
+          clearPresetActive();
+        });
+      });
+
+      function setAll(val) {
+        ALL_OPTS.forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.checked = val;
+        });
+      }
+      function clearPresetActive() {
+        document.querySelectorAll(".preset-btn").forEach((b) => b.classList.remove("active"));
+      }
+
+      document.querySelectorAll(".preset-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          clearPresetActive();
+          btn.classList.add("active");
+          const preset = btn.dataset.preset;
+          if (preset === "default") {
+            setAll(false);
+            ["opt-lower", "opt-punct", "opt-stop", "opt-num", "opt-space"].forEach((id) => {
+              const el = document.getElementById(id);
+              if (el) el.checked = true;
+            });
+          } else if (preset === "all-on") {
+            setAll(true);
+          } else {
+            setAll(false);
+          }
+          syncCards();
+        });
+      });
+
+      ALL_OPTS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener("change", () => {
+            clearPresetActive();
+            syncCards();
+          });
+        }
+      });
+
+      syncCards();
+
+      ["topn", "minlen"].forEach((id) =>
+        document.getElementById(id).addEventListener("input", (e) => (document.getElementById(id + "-val").textContent = e.target.value))
+      );
+      document.getElementById("methods").addEventListener("click", (e) => {
+        const b = e.target.closest(".method-btn");
+        if (!b) return;
+        document.querySelectorAll(".method-btn").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+      });
+      document.getElementById("fileInput").addEventListener("change", (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = (ev) => { document.getElementById("text-input").value = ev.target.result; updateCount(); };
+        r.onerror = () => toast("Could not read this file.");
+        r.readAsText(f);
+      });
+    });
+
+    const $ = (id) => document.getElementById(id);
+    const SAMPLE = "Text mining is the process of deriving high-quality information from text. It involves the discovery of patterns and trends through statistical pattern learning. Keyword extraction is a text analysis technique that finds the most relevant words and phrases in a document. Good keyword extraction helps with topic modeling, document summarization and search. Natural language processing tools use keyword extraction to organize large text collections and reveal the main topics.";
+
+    function switchTab(t) {
+      document.querySelectorAll(".input-tab").forEach((x) => x.classList.remove("active"));
+      t.classList.add("active");
+      const txt = t.innerText;
+      if (txt.includes("Upload")) $("fileInput").click();
+      else if (txt.includes("Sample")) { $("text-input").value = SAMPLE; updateCount(); }
+    }
+
+    function updateCount() {
+      const v = $("text-input").value;
+      $("char-count").textContent = v.length;
+      const w = (v.toLowerCase().match(/[a-z][a-z'-]*/g) || []);
+      $("s-words").textContent = w.length;
+      $("s-unique").textContent = new Set(w).size;
+    }
+
+    function clearAll() {
+      $("text-input").value = "";
+      updateCount();
+      last = [];
+      $("s-kw").textContent = "0";
+      $("s-top").textContent = "-";
+      $("results").innerHTML = '<div class="empty"><i class="fas fa-key"></i>Add some text and select Extract Keywords to see results here.</div>';
+    }
+    
+    function toast(m) {
+      const t = $("toast");
+      t.textContent = m;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2200);
+    }
+
+    let last = [], method = () => document.querySelector(".method-btn.active").dataset.m;
+
+    async function extract() {
+      let text = $("text-input").value;
+      if (!text.trim()) {
+        toast("Please enter some text.");
+        return;
+      }
+
+      const query = new URLSearchParams();
+      ALL_OPTS.forEach(opt => {
+        if ($(opt).checked) query.append(opt.replace("opt-", ""), "1");
+      });
+      query.append("method", method());
+      query.append("topn", $("topn").value);
+      query.append("minlen", $("minlen").value);
+
+      const btn = $("btn-extract");
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Extracting...';
+      btn.disabled = true;
+
+      try {
+        // यहाँ 'localhost' की जगह '127.0.0.1' कर दिया गया है
+        const res = await fetch(`http://127.0.0.1:8080/api/extract?${query.toString()}`, {
+          method: 'POST',
+          body: text
+        });
+
+        if (!res.ok) throw new Error("Server error");
+        
+        const data = await res.json();
+        
+        $("s-words").textContent = data.total_words;
+        $("s-unique").textContent = data.unique_words;
+        $("s-kw").textContent = data.keywords.length;
+        $("s-top").textContent = data.keywords.length > 0 ? data.keywords[0].word : "-";
+
+        last = data.keywords.map(k => [k.word, k.score]);
+        render(last, method());
+        
+      } catch (err) {
+        console.error(err);
+        toast("Error: C++ Backend is not running.");
+        $("results").innerHTML = '<div class="empty" style="color: #ff4d4d;"><i class="fas fa-plug"></i>Could not connect to C++ Server. Make sure it is running on port 8080.</div>';
+      } finally {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+      }
+    }
+
+    function render(list, m) {
+      if (!list.length) {
+        $("results").innerHTML = '<div class="empty"><i class="fas fa-circle-info"></i>No keywords found. Try a longer text, a lower minimum word length, or turn off stopword removal.</div>';
+        return;
+      }
+      const max = list[0][1], fmt = (s) => (m === "freq" ? Math.round(s) : s.toFixed(2));
+      const rows = list.map(([k, s], i) => `<li class="kw-row"><span class="kw-rank">${i + 1}</span><div><div class="kw-name">${esc(k)}</div><div class="kw-bar"><i style="width:0" data-w="${((s / max) * 100).toFixed(0)}"></i></div></div><span class="kw-score">${fmt(s)}</span></li>`).join("");
+      const chips = list.map(([k], i) => `<span class="chip" style="font-size:${Math.max(12, 18 - i * 0.5)}px" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(k).replace(/'/g, "\\'")}');toast('Copied: ${esc(k).replace(/'/g, "\\'")}')">${esc(k)}</span>`).join("");
+      $("results").innerHTML = `<div><div class="sub-title">Ranked by score</div><ul class="kw-list">${rows}</ul></div><div><div class="sub-title">Keyword cloud (select to copy)</div><div class="chip-cloud">${chips}</div></div>`;
+      requestAnimationFrame(() => document.querySelectorAll(".kw-bar i").forEach((b) => (b.style.width = b.dataset.w + "%")));
+    }
+
+    function esc(s) {
+      return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+    }
+
+    function copyKw() {
+      if (!last.length) { toast("Extract keywords first."); return; }
+      navigator.clipboard.writeText(last.map((x) => x[0]).join(", ")).then(
+        () => toast("Keywords copied"),
+        () => toast("Copy failed.")
+      );
+    }
+
+    function downloadKw() {
+      if (!last.length) { toast("Extract keywords first."); return; }
+      const csv = "rank,keyword,score\n" + last.map(([k, s], i) => `${i + 1},"${k}",${s.toFixed(4)}`).join("\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+      a.download = "keywords.csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function handleSubscribe(e) {
+      e.preventDefault();
+      const i = $("subscribe-email"), v = i.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { toast("Please enter a valid email address."); return; }
+      toast("Subscribed! Updates will go to " + v);
+      i.value = "";
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Preprocessing - Text Corpus - Liquid Glass Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    :root {
+      --bg-light: #e0f7fa;
+      --bg-mid: #48cae4;
+      --bg-deep: #0077b6;
+      --glass-bg: rgba(255, 255, 255, 0.25);
+      --glass-border: rgba(255, 255, 255, 0.6);
+      --glass-border-hover: rgba(255, 255, 255, 1);
+      --glass-shadow: 0 8px 32px 0 rgba(0, 119, 182, 0.2);
+      --glass-inset: inset 0 0 15px rgba(255, 255, 255, 0.5);
+      --text-main: #023e8a;
+      --text-hover: #0077b6;
+      --text-active: #ffffff;
+      --bubble-bg: linear-gradient(135deg, #0096c7, #0077b6, #023e8a);
+      --bubble-shadow: 0 10px 25px rgba(0, 119, 182, 0.5), inset 0 2px 5px rgba(255,255,255,0.3);
+      --panel-bg: rgba(255, 255, 255, 0.35);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Poppins',sans-serif; -webkit-tap-highlight-color:transparent; }
+    html, body { overflow-x:hidden; }
+    html { background:#4fc3f7; }
+    body { min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; align-items:center; padding:20px; position:relative; }
+    body.no-scroll, html:has(body.no-scroll) { overflow:hidden; }
+
+    @keyframes bgShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .liquid-bg { position:fixed; top:0; left:0; width:100%; height:100%; overflow:hidden; z-index:-1; pointer-events:none; background:linear-gradient(135deg,#b3e5fc,#4fc3f7,#0288d1); background-size:300% 300%; animation:bgShift 18s ease infinite; }
+    .center-glow { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:120vw; height:120vh; background:radial-gradient(circle at center, rgba(255,255,255,.8) 0%, rgba(144,224,239,.4) 40%, transparent 70%); filter:blur(40px); animation:glowPulse 8s ease-in-out infinite; }
+    @keyframes glowPulse {
+      0%, 100% { opacity:.85; transform:translate(-50%,-50%) scale(1); }
+      50% { opacity:1; transform:translate(-50%,-50%) scale(1.05); }
+    }
+    .liquid-swirl { position:absolute; border-radius:50%; border:15px solid rgba(255,255,255,.3); box-shadow:0 0 30px rgba(255,255,255,.5), inset 0 0 20px rgba(255,255,255,.5); filter:blur(2px); }
+    .swirl-1 { width:150%; height:150%; top:-50%; left:-20%; transform:rotate(-15deg); border-color:rgba(255,255,255,.2) rgba(255,255,255,.5) rgba(255,255,255,.1) rgba(255,255,255,.6); animation:swirlSpin 40s linear infinite; }
+    .swirl-2 { width:120%; height:120%; bottom:-60%; right:-20%; transform:rotate(25deg); border-color:rgba(0,180,216,.3) rgba(255,255,255,.4) rgba(0,180,216,.1) rgba(255,255,255,.5); animation:swirlSpinReverse 50s linear infinite; }
+    @keyframes swirlSpin { from { transform:rotate(-15deg);} to { transform:rotate(345deg);} }
+    @keyframes swirlSpinReverse { from { transform:rotate(25deg);} to { transform:rotate(-335deg);} }
+
+    .static-bubble { position:absolute; border-radius:50%; background:radial-gradient(circle at 30% 30%, #ffffff, #90e0ef, #0077b6); box-shadow:inset 10px 10px 20px rgba(255,255,255,.9), inset -10px -10px 20px rgba(0,0,0,.2), 0 15px 35px rgba(0,119,182,.4); }
+    .bubble-1 { width:180px; height:180px; top:-40px; left:-40px; animation:bubbleFloat 9s ease-in-out infinite; }
+    .bubble-2 { width:120px; height:120px; top:10%; right:-30px; animation:bubbleFloat 11s ease-in-out infinite reverse; }
+    .bubble-3 { width:140px; height:140px; bottom:-50px; left:5%; animation:bubbleFloat 10s ease-in-out infinite; }
+    .bubble-4 { width:80px; height:80px; bottom:15%; right:5%; animation:bubbleFloat 8s ease-in-out infinite reverse; }
+    @keyframes bubbleFloat {
+      0%, 100% { transform:translateY(0) translateX(0); }
+      50% { transform:translateY(-20px) translateX(10px); }
+    }
+
+    /* Header */
+    .header-container { width:100%; max-width:1250px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; padding:10px 20px; gap:20px; z-index:10; position:relative; }
+    .menu-toggle { display:none; background:var(--glass-bg); border:2px solid var(--glass-border); color:var(--text-main); font-size:20px; width:45px; height:45px; border-radius:12px; cursor:pointer; box-shadow:var(--glass-shadow),var(--glass-inset); transition:all .3s ease; z-index:20; align-items:center; justify-content:center; }
+    .logo-container { flex-shrink:0; display:flex; align-items:center; }
+    .logo-container img { height:125px; width:auto; max-width:100%; object-fit:contain; filter:drop-shadow(0 10px 15px rgba(0,62,138,.3)); transition:transform .4s cubic-bezier(.175,.885,.32,1.275), filter .4s ease; }
+    .right-section { display:flex; flex-direction:column; align-items:flex-end; gap:10px; flex-shrink:0; }
+    .search-container { position:relative; width:350px; }
+    .search-container input { width:100%; padding:10px 20px 10px 45px; border-radius:50px; border:2px solid var(--glass-border); background:var(--glass-bg); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); color:var(--text-main); font-size:13px; font-weight:600; outline:none; box-shadow:var(--glass-shadow),var(--glass-inset); transition:all .4s cubic-bezier(.25,1,.5,1); }
+    .search-container input::placeholder { color:rgba(2,62,138,.6); font-weight:500; }
+    .search-container input:focus { background:rgba(255,255,255,.85); border-color:#fff; box-shadow:0 0 25px rgba(255,255,255,.9), 0 10px 30px rgba(0,119,182,.3), var(--glass-inset); transform:translateY(-2px); color:var(--bg-deep); }
+    .search-container i { position:absolute; left:18px; top:50%; transform:translateY(-50%); color:var(--text-main); opacity:.7; transition:all .3s ease; }
+
+    /* Layout */
+    .main-dashboard { display:flex; width:100%; max-width:1250px; margin:20px auto; gap:25px; z-index:10; align-items:flex-start; }
+
+    /* Sidebar */
+    .sidebar { width:280px; background:var(--glass-bg); backdrop-filter:blur(25px); -webkit-backdrop-filter:blur(25px); border:2px solid var(--glass-border); border-radius:25px; padding:20px 15px; box-shadow:var(--glass-shadow),var(--glass-inset); flex-shrink:0; z-index:100; }
+    .sidebar-header { display:none; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:10px; border-bottom:1px solid rgba(0,119,182,.2); }
+    .sidebar-header h3 { color:var(--text-main); font-size:18px; font-weight:700; }
+    .sidebar-header button { background:none; border:none; font-size:22px; color:var(--text-main); cursor:pointer; transition:transform .3s ease; }
+    .sidebar-menu { display:flex; flex-direction:column; gap:8px; }
+    .sidebar-item { display:flex; align-items:center; gap:12px; padding:12px 18px; border-radius:15px; text-decoration:none; color:var(--text-main); font-weight:600; font-size:14px; transition:background .4s ease, color .3s ease, box-shadow .4s ease, transform .3s ease; border:2px solid transparent; touch-action:manipulation; cursor:pointer; }
+    .sidebar-item i { font-size:16px; width:20px; text-align:center; }
+    .sidebar-item:hover { background:rgba(255,255,255,.5); color:var(--text-hover); border-color:rgba(255,255,255,.8); }
+    .sidebar-item.active { background:var(--bubble-bg); color:var(--text-active); box-shadow:0 8px 20px rgba(0,119,182,.4); border-color:rgba(255,255,255,.3); }
+
+    /* Right Column */
+    .right-column { display:flex; flex-direction:column; gap:25px; flex-grow:1; width:100%; min-width:0; }
+
+    /* Feature Cards */
+    .preprocessing-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:20px; width:100%; }
+    .feature-card { background:var(--glass-bg); backdrop-filter:blur(25px); -webkit-backdrop-filter:blur(25px); border:2px solid var(--glass-border); border-radius:20px; padding:24px 18px; text-align:center; box-shadow:var(--glass-shadow),var(--glass-inset); transition:transform .3s cubic-bezier(.175,.885,.32,1.275), border-color .3s ease, box-shadow .3s ease; cursor:pointer; text-decoration:none; color:inherit; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; user-select:none; }
+    .feature-card:hover { transform:translateY(-5px); border-color:var(--glass-border-hover); box-shadow:0 15px 35px rgba(0,119,182,.3), var(--glass-inset); }
+    .feature-card i { font-size:40px; margin-bottom:15px; display:inline-block; background:linear-gradient(135deg,#0077b6,#023e8a); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .feature-card:nth-child(1) i { background:linear-gradient(135deg,#0096c7,#0077b6); -webkit-background-clip:text; }
+    .feature-card:nth-child(2) i { background:linear-gradient(135deg,#4361ee,#023e8a); -webkit-background-clip:text; }
+    .feature-card:nth-child(3) i { background:linear-gradient(135deg,#7209b7,#480ca8); -webkit-background-clip:text; }
+    .feature-card:nth-child(4) i { background:linear-gradient(135deg,#38b000,#007200); -webkit-background-clip:text; }
+    .feature-card:nth-child(5) i { background:linear-gradient(135deg,#f4a261,#e76f51); -webkit-background-clip:text; }
+    .feature-card:nth-child(6) i { background:linear-gradient(135deg,#9d4edd,#5a189a); -webkit-background-clip:text; }
+    .feature-card h4 { color:var(--text-main); font-size:16px; font-weight:700; margin-bottom:5px; }
+    .feature-card p { color:var(--text-hover); font-size:12px; font-weight:500; line-height:1.4; }
+    .feature-card .on-badge { position:absolute; top:10px; right:10px; width:10px; height:10px; border-radius:50%; background:rgba(2,62,138,.15); transition:.3s; }
+    .feature-card.on .on-badge { background:#38b000; box-shadow:0 0 8px #38b000; }
+    .feature-card.on { border-color:rgba(56,176,0,.5); }
+
+    /* Panels */
+    .workspace-container { display:flex; gap:20px; width:100%; align-items:stretch; }
+    .glass-panel { background:var(--panel-bg); backdrop-filter:blur(25px); -webkit-backdrop-filter:blur(25px); border:2px solid var(--glass-border); border-radius:25px; padding:20px; box-shadow:var(--glass-shadow),var(--glass-inset); }
+    .section-header { display:flex; align-items:center; gap:10px; color:var(--text-main); font-size:16px; font-weight:700; margin-bottom:15px; }
+    .section-header i { font-size:18px; color:var(--bg-deep); }
+    .input-section { flex:2; display:flex; flex-direction:column; min-width:0; }
+    .options-section { flex:1; min-width:280px; }
+
+    /* Tabs */
+    .input-tabs { display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap; }
+    .input-tab { background:rgba(255,255,255,.5); border:2px solid transparent; padding:8px 16px; border-radius:20px; color:var(--text-main); font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .3s ease; }
+    .input-tab:hover { background:rgba(255,255,255,.8); }
+    .input-tab.active { background:var(--bubble-bg); color:var(--text-active); box-shadow:0 4px 15px rgba(0,119,182,.3); border-color:rgba(255,255,255,.3); }
+
+    textarea { width:100%; flex-grow:1; min-height:170px; background:rgba(255,255,255,.6); border:2px solid transparent; border-radius:15px; padding:15px; font-size:14px; color:var(--text-main); outline:none; resize:vertical; transition:border-color .3s ease, background .3s ease; font-family:'Poppins',sans-serif; margin-bottom:10px; }
+    textarea:focus { background:rgba(255,255,255,.9); border-color:#fff; box-shadow:0 0 15px rgba(255,255,255,.5); }
+    textarea::placeholder { color:rgba(2,62,138,.5); }
+    .char-counter { text-align:right; font-size:11px; color:var(--text-hover); font-weight:500; margin-bottom:15px; }
+    .input-actions { display:flex; gap:15px; align-items:center; }
+    .btn-clear { background:rgba(255,255,255,.7); border:2px solid transparent; padding:10px 20px; border-radius:15px; color:var(--text-main); font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all .3s ease; }
+    .btn-clear:hover { background:#fff; border-color:rgba(0,119,182,.2); }
+    .btn-process { flex-grow:1; background:linear-gradient(135deg,#00b4d8,#0077b6); border:2px solid rgba(255,255,255,.4); padding:12px 20px; border-radius:15px; color:#fff; font-weight:700; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 8px 20px rgba(0,119,182,.4); transition:all .3s cubic-bezier(.25,1,.5,1); position:relative; overflow:hidden; }
+    .btn-process:hover { transform:translateY(-2px); box-shadow:0 12px 25px rgba(0,119,182,.5); }
+    .btn-process:active { transform:translateY(0); }
+    .btn-process:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+    .btn-process::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:linear-gradient(45deg, transparent, rgba(255,255,255,.3), transparent); transform:rotate(45deg); animation:shine 3s infinite; }
+    @keyframes shine { 0% { transform:translateX(-100%) rotate(45deg);} 100% { transform:translateX(100%) rotate(45deg);} }
+
+    /* Preset buttons */
+    .preset-buttons { display:flex; gap:8px; margin-bottom:15px; }
+    .preset-btn { flex:1; background:rgba(255,255,255,.5); border:2px solid transparent; border-radius:12px; padding:8px 10px; font-size:12px; font-weight:600; color:var(--text-main); cursor:pointer; transition:all .3s ease; font-family:'Poppins',sans-serif; display:flex; align-items:center; justify-content:center; gap:5px; }
+    .preset-btn:hover { background:rgba(255,255,255,.8); border-color:rgba(255,255,255,.6); }
+    .preset-btn.active { background:var(--bubble-bg); color:var(--text-active); border-color:rgba(255,255,255,.3); box-shadow:0 4px 12px rgba(0,119,182,.3); }
+    .preset-btn i { font-size:11px; }
+
+    /* Toggles */
+    .toggle-list { display:flex; flex-direction:column; gap:12px; }
+    .toggle-item { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(0,119,182,.1); }
+    .toggle-item:last-child { border-bottom:none; }
+    .toggle-label { display:flex; align-items:center; gap:10px; color:var(--text-main); font-size:13px; font-weight:600; }
+    .toggle-label i { color:var(--bg-deep); font-size:14px; width:18px; text-align:center; }
+    .switch { position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
+    .switch input { opacity:0; width:0; height:0; }
+    .slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:rgba(2,62,138,.2); transition:.4s; border-radius:34px; border:1px solid rgba(255,255,255,.4); }
+    .slider:before { position:absolute; content:""; height:18px; width:18px; left:2px; bottom:2px; background-color:#fff; transition:.4s; border-radius:50%; box-shadow:0 2px 4px rgba(0,0,0,.2); }
+    input:checked + .slider { background:linear-gradient(135deg,#0096c7,#0077b6); }
+    input:checked + .slider:before { transform:translateX(20px); }
+
+    /* Stats */
+    .stats-container { display:flex; gap:15px; }
+    .stat-card { flex:1; background:var(--glass-bg); backdrop-filter:blur(25px); -webkit-backdrop-filter:blur(25px); border:2px solid var(--glass-border); border-radius:20px; padding:15px 20px; box-shadow:var(--glass-shadow),var(--glass-inset); min-width:140px; }
+    .stat-info { display:flex; align-items:center; gap:10px; color:var(--text-main); font-size:13px; font-weight:600; }
+    .stat-info i { font-size:18px; }
+    .stat-card:nth-child(1) i { color:#0077b6; }
+    .stat-card:nth-child(2) i { color:#00b4d8; }
+    .stat-card:nth-child(3) i { color:#7209b7; }
+    .stat-card:nth-child(4) i { color:#ffa500; }
+    .stat-value { font-size:28px; font-weight:700; color:var(--text-main); margin-top:5px; }
+
+    /* Results */
+    .results-head { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px; }
+    .results-head .section-header { margin:0; }
+    .result-actions { display:flex; gap:8px; }
+    .mini-btn { background:rgba(255,255,255,.7); border:2px solid transparent; border-radius:12px; padding:7px 14px; font-size:12px; font-weight:600; color:var(--text-main); cursor:pointer; display:flex; align-items:center; gap:6px; transition:.3s; }
+    .mini-btn:hover { background:#fff; border-color:rgba(0,119,182,.2); }
+    .output-box { background:rgba(255,255,255,.55); border-radius:16px; padding:18px; font-size:14px; line-height:1.7; color:var(--text-main); white-space:pre-wrap; word-break:break-word; max-height:320px; overflow-y:auto; border:1.5px solid rgba(255,255,255,.8); font-weight:500; }
+    .empty { text-align:center; color:var(--text-hover); font-size:14px; font-weight:500; padding:30px 10px; }
+    .empty i { display:block; font-size:34px; margin-bottom:10px; opacity:.6; }
+
+    /* Footer */
+    .footer-wrapper { width:100%; max-width:1250px; margin:40px auto 10px; z-index:10; position:relative; }
+    .footer-container { background:var(--glass-bg); backdrop-filter:blur(25px); -webkit-backdrop-filter:blur(25px); border:2px solid var(--glass-border); border-radius:25px; padding:25px 30px; box-shadow:var(--glass-shadow),var(--glass-inset); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:15px; }
+    .footer-brand { display:flex; align-items:center; gap:10px; color:var(--text-main); font-size:15px; font-weight:700; }
+    .footer-brand img { height:80px; width:auto; object-fit:contain; }
+    .footer-links { display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
+    .footer-links a { color:var(--text-hover); text-decoration:none; font-size:13px; font-weight:600; transition:color .3s ease; }
+    .footer-links a:hover { color:var(--text-main); }
+    .footer-subscribe { display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex-grow:1; max-width:400px; }
+    .subscribe-form { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.4); border:2px solid var(--glass-border); border-radius:50px; padding:4px 4px 4px 15px; transition:all .3s ease; width:100%; }
+    .subscribe-form:focus-within { background:rgba(255,255,255,.85); border-color:#fff; box-shadow:0 0 15px rgba(255,255,255,.7); }
+    .subscribe-form i { color:var(--text-main); opacity:.7; font-size:14px; }
+    .subscribe-input { border:none; background:transparent; outline:none; color:var(--text-main); font-size:13px; font-weight:500; flex:1; min-width:0; font-family:'Poppins',sans-serif; padding:4px 8px 4px 0; }
+    .subscribe-input::placeholder { color:rgba(2,62,138,.5); }
+    .subscribe-btn { background:var(--bubble-bg); border:2px solid rgba(255,255,255,.4); color:#fff; font-weight:700; font-size:12px; padding:8px 18px; border-radius:50px; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 4px 10px rgba(0,119,182,.3); transition:all .3s ease; font-family:'Poppins',sans-serif; white-space:nowrap; flex-shrink:0; }
+    .subscribe-btn:hover { transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,119,182,.4); }
+    .footer-copy { width:100%; text-align:center; padding-top:15px; border-top:1px solid rgba(0,119,182,.15); color:var(--text-hover); font-size:12px; font-weight:500; }
+    .footer-copy span { font-weight:700; color:var(--bg-deep); }
+
+    /* Overlay */
+    .overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:transparent; z-index:998; opacity:0; visibility:hidden; transition:all .4s ease; }
+    .overlay.active { opacity:1; visibility:visible; }
+
+    /* Toast */
+    .toast { position:fixed; bottom:30px; left:50%; transform:translate(-50%,40px); background:rgba(255,255,255,.8); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:2px solid #fff; color:var(--text-main); font-weight:600; font-size:13px; padding:12px 22px; border-radius:50px; box-shadow:var(--glass-shadow); opacity:0; transition:.4s; z-index:99999; pointer-events:none; }
+    .toast.show { opacity:1; transform:translate(-50%,0); }
+
+    /* Responsive */
+    @media (max-width:1024px) {
+      .header-container { z-index:auto; flex-direction:column; align-items:center; gap:15px; padding:15px; }
+      .main-dashboard { z-index:auto; flex-direction:column; align-items:center; }
+      .overlay { z-index:9998; }
+      .menu-toggle { display:flex; position:fixed; top:25px; right:25px; z-index:10000; }
+      .logo-container img { height:115px; }
+      .right-section { align-items:center; width:100%; }
+      .search-container { width:100%; max-width:450px; }
+      .sidebar { position:fixed; top:0; left:0; height:100vh; height:100dvh; width:min(300px,85vw); max-width:100%; z-index:9999; border-radius:0 25px 25px 0; background:linear-gradient(150deg, rgba(179,229,252,.55) 0%, rgba(144,224,239,.50) 45%, rgba(72,202,228,.55) 100%); backdrop-filter:blur(25px) saturate(180%); -webkit-backdrop-filter:blur(25px) saturate(180%); transform:translateX(-100%); transition:transform .45s cubic-bezier(.25,1,.5,1); will-change:transform; overflow-y:auto; overflow-x:hidden; padding:20px; box-shadow:8px 0 40px rgba(0,119,182,.3), inset 0 0 25px rgba(255,255,255,.25); border:2px solid rgba(255,255,255,.7); border-left:none; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; pointer-events:none; }
+      .sidebar.active { transform:translateX(0); pointer-events:auto; }
+      .sidebar-menu { padding-bottom:40px; flex-direction:column; gap:12px; }
+      @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        .sidebar { background:linear-gradient(150deg, #b3e5fc, #81d4fa, #4fc3f7); }
+      }
+      .sidebar-header { display:flex; }
+      .sidebar-item { justify-content:flex-start; padding:14px 18px; font-size:14px; word-break:break-word; white-space:normal; }
+      .preprocessing-grid { grid-template-columns:1fr 1fr; }
+      .workspace-container { flex-direction:column; }
+      .input-section { width:100%; }
+      .options-section { width:100%; min-width:0; }
+      .stats-container { flex-wrap:wrap; }
+      .stat-card { flex:1 1 40%; }
+      .bubble-1 { width:120px; height:120px; top:-20px; left:-20px; }
+      .bubble-2 { width:80px; height:80px; top:5%; right:-15px; }
+      .bubble-3 { width:100px; height:100px; bottom:-30px; left:2%; }
+      .bubble-4 { width:60px; height:60px; bottom:10%; right:2%; }
+    }
+    @media (hover:none) and (pointer:coarse) {
+      .sidebar-item:hover { background:rgba(255,255,255,.15); color:var(--text-main); border-color:transparent; transform:none; }
+      .sidebar-item.active:hover { background:var(--bubble-bg); color:var(--text-active); border-color:rgba(255,255,255,.3); }
+      .feature-card:hover { transform:none; border-color:var(--glass-border); box-shadow:var(--glass-shadow),var(--glass-inset); }
+      .btn-process:hover { transform:none; box-shadow:0 8px 20px rgba(0,119,182,.4); }
+      .subscribe-btn:hover { transform:none; }
+      .preset-btn:hover { background:rgba(255,255,255,.5); border-color:transparent; }
+    }
+    @media (max-width:768px) {
+      body { padding:10px; }
+      .logo-container img { height:100px; }
+      .menu-toggle { top:20px; right:20px; width:40px; height:40px; font-size:18px; }
+      .stats-container { flex-wrap:nowrap; overflow-x:auto; padding-bottom:10px; scrollbar-width:none; }
+      .stat-card { flex:0 0 auto; width:150px; }
+      .bubble-1 { width:80px; height:80px; top:-10px; left:-10px; }
+      .bubble-2 { width:50px; height:50px; top:5%; right:-10px; }
+      .bubble-3 { width:70px; height:70px; bottom:-20px; left:0%; }
+      .bubble-4 { width:40px; height:40px; bottom:8%; right:0%; }
+      .footer-container { flex-direction:column; text-align:center; padding:20px; gap:15px; }
+      .footer-links { justify-content:center; gap:16px; }
+      .footer-subscribe { width:100%; justify-content:center; max-width:100%; }
+      .subscribe-form { width:100%; max-width:100%; }
+      .subscribe-input { width:100%; }
+    }
+    @media (max-width:480px) {
+      .logo-container img { height:90px; }
+      .search-container input { padding:10px 15px 10px 40px; font-size:12px; }
+      .search-container i { left:15px; font-size:13px; }
+      .bubble-4 { display:none; }
+      .swirl-1, .swirl-2 { opacity:.5; }
+      .sidebar { width:min(280px,88vw); padding:18px 15px; }
+      .sidebar-item { padding:12px 15px; font-size:13px; }
+      .menu-toggle { top:15px; right:15px; }
+      .preprocessing-grid { grid-template-columns:1fr; }
+      .feature-card { padding:25px 15px; }
+      .feature-card i { font-size:26px; }
+      .input-tabs { flex-wrap:wrap; gap:8px; }
+      .input-tab { padding:6px 12px; font-size:11px; flex-grow:1; justify-content:center; }
+      .btn-clear { padding:8px 12px; font-size:12px; }
+      .btn-process { padding:10px 15px; font-size:13px; }
+      .section-header { font-size:14px; }
+      .preset-btn { font-size:11px; padding:7px 6px; }
+      .preset-btn i { display:none; }
+      .footer-container { padding:18px 15px; border-radius:20px; }
+      .footer-brand { font-size:14px; }
+      .footer-brand img { height:74px; }
+      .footer-links { gap:14px; }
+      .footer-links a { font-size:12px; }
+      .subscribe-btn { padding:7px 14px; font-size:11px; }
+      .footer-copy { font-size:11px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="liquid-bg">
+    <div class="center-glow"></div>
+    <div class="liquid-swirl swirl-1"></div>
+    <div class="liquid-swirl swirl-2"></div>
+    <div class="static-bubble bubble-1"></div>
+    <div class="static-bubble bubble-2"></div>
+    <div class="static-bubble bubble-3"></div>
+    <div class="static-bubble bubble-4"></div>
+  </div>
+
+  <div class="overlay" id="overlay"></div>
+
+  <!-- HEADER -->
+  <div class="header-container">
+    <button class="menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="logo-container">
+      <img src="logo.png" alt="Text Corpus Logo" />
+    </div>
+
+    <div class="right-section">
+      <div class="search-container">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search tools..." />
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN DASHBOARD -->
+  <div class="main-dashboard">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h3>Menu</h3>
+        <button id="close-sidebar" aria-label="Close Menu"><i class="fas fa-times"></i></button>
+      </div>
+
+      <nav class="sidebar-menu" id="sidebar-menu">
+        <a href="download.html" class="sidebar-item"><i class="fas fa-download"></i> Download</a>
+        <a href="keyword-extension.html" class="sidebar-item"><i class="fas fa-key"></i> Keyword Extension</a>
+        <a href="preprocessing.html" class="sidebar-item active"><i class="fas fa-cog"></i> Preprocessing</a>
+        <a href="sentiment-analysis.html" class="sidebar-item"><i class="fas fa-smile"></i> Sentiment Analysis</a>
+        <a href="tokenization.html" class="sidebar-item"><i class="fas fa-cubes"></i> Tokenization</a>
+        <a href="word-frequency.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Word Frequency</a>
+      </nav>
+    </aside>
+
+    <div class="right-column">
+
+      <!-- Quick-toggle cards -->
+      <div class="preprocessing-grid" id="featureCards">
+        <div class="feature-card" data-target="opt-lower">
+          <span class="on-badge"></span>
+          <i class="fas fa-font"></i>
+          <h4>Lowercase</h4>
+          <p>Convert all text to lowercase</p>
+        </div>
+        <div class="feature-card" data-target="opt-punct">
+          <span class="on-badge"></span>
+          <i class="fas fa-ellipsis-h"></i>
+          <h4>Punctuation</h4>
+          <p>Remove punctuation marks</p>
+        </div>
+        <div class="feature-card" data-target="opt-stop">
+          <span class="on-badge"></span>
+          <i class="fas fa-minus-circle"></i>
+          <h4>Stopwords</h4>
+          <p>Filter out common words</p>
+        </div>
+        <div class="feature-card" data-target="opt-stem">
+          <span class="on-badge"></span>
+          <i class="fas fa-leaf"></i>
+          <h4>Stemming</h4>
+          <p>Reduce words to root form</p>
+        </div>
+        <div class="feature-card" data-target="opt-lemma">
+          <span class="on-badge"></span>
+          <i class="fas fa-bookmark"></i>
+          <h4>Lemmatization</h4>
+          <p>Reduce to dictionary form</p>
+        </div>
+        <div class="feature-card" data-target="opt-num">
+          <span class="on-badge"></span>
+          <i class="fas fa-hashtag"></i>
+          <h4>Numbers</h4>
+          <p>Remove numeric characters</p>
+        </div>
+      </div>
+
+      <!-- Workspace -->
+      <div class="workspace-container">
+        <div class="input-section glass-panel">
+          <div class="section-header"><i class="fas fa-file-alt"></i> Input Text for Preprocessing</div>
+          <div class="input-tabs">
+            <button class="input-tab active" onclick="switchTab(this)"><i class="fas fa-keyboard"></i> Enter Text</button>
+            <button class="input-tab" onclick="switchTab(this)"><i class="fas fa-cloud-upload-alt"></i> Upload File</button>
+            <button class="input-tab" onclick="switchTab(this)"><i class="fas fa-file-alt"></i> Sample Text</button>
+          </div>
+          <input type="file" id="fileInput" accept=".txt,.csv,.json,.md" style="display:none" />
+          <textarea id="text-input" placeholder="Paste your text here for preprocessing..." oninput="updateCount()"></textarea>
+          <div class="char-counter"><span id="char-count">0</span> characters</div>
+          <div class="input-actions">
+            <button class="btn-clear" onclick="clearAll()"><i class="fas fa-trash"></i> Clear</button>
+            <button class="btn-process" id="btn-process" onclick="preprocess()"><i class="fas fa-play"></i> Apply Preprocessing</button>
+          </div>
+        </div>
+
+        <div class="options-section glass-panel">
+          <div class="section-header"><i class="fas fa-sliders"></i> Preprocessing Options</div>
+
+          <!-- Preset buttons -->
+          <div class="preset-buttons" id="presetButtons">
+            <button type="button" class="preset-btn active" data-preset="default" title="Recommended default settings">
+              <i class="fas fa-wand-magic-sparkles"></i> Default
+            </button>
+            <button type="button" class="preset-btn" data-preset="all-on" title="Turn all preprocessing on">
+              <i class="fas fa-circle-check"></i> All On
+            </button>
+            <button type="button" class="preset-btn" data-preset="all-off" title="Turn everything off (raw text)">
+              <i class="fas fa-circle-xmark"></i> All Off
+            </button>
+          </div>
+
+          <div class="toggle-list">
+            <div class="toggle-item">
+              <span class="toggle-label"><i class="fas fa-font"></i> Lowercase</span>
+              <label class="switch"><input type="checkbox" id="opt-lower" checked /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <span class="toggle-label"><i class="fas fa-ellipsis-h"></i> Remove Punctuation</span>
+              <label class="switch"><input type="checkbox" id="opt-punct" checked /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <span class="toggle-label"><i class="fas fa-minus-circle"></i> Remove Stopwords</span>
+              <label class="switch"><input type="checkbox" id="opt-stop" checked /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <span class="toggle-label"><i class="fas fa-leaf"></i> Stemming (Porter)</span>
+              <label class="switch"><input type="checkbox" id="opt-stem" checked /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <span class="toggle-label"><i class="fas fa-bookmark"></i> Lemmatization</span>
+              <label class="switch"><input type="checkbox" id="opt-lemma" /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <span class="toggle-label"><i class="fas fa-hashtag"></i> Remove Numbers</span>
+              <label class="switch"><input type="checkbox" id="opt-num" checked /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <span class="toggle-label"><i class="fas fa-text-width"></i> Remove Extra Spaces</span>
+              <label class="switch"><input type="checkbox" id="opt-space" checked /><span class="slider"></span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-container">
+        <div class="stat-card">
+          <div class="stat-info"><i class="fas fa-book-open"></i><span>Original Words</span></div>
+          <div class="stat-value" id="s-words">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info"><i class="fas fa-layer-group"></i><span>Unique Words</span></div>
+          <div class="stat-value" id="s-unique">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info"><i class="fas fa-filter"></i><span>Words Removed</span></div>
+          <div class="stat-value" id="s-removed">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info"><i class="fas fa-check-circle"></i><span>Final Tokens</span></div>
+          <div class="stat-value" id="s-kept">0</div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="glass-panel">
+        <div class="results-head">
+          <div class="section-header"><i class="fas fa-wand-magic-sparkles"></i> Preprocessed Output</div>
+          <div class="result-actions">
+            <button class="mini-btn" onclick="copyOutput()"><i class="fas fa-copy"></i> Copy</button>
+            <button class="mini-btn" onclick="downloadOutput()"><i class="fas fa-download"></i> TXT</button>
+          </div>
+        </div>
+        <div id="results">
+          <div class="empty"><i class="fas fa-cog"></i>Add some text and click Apply Preprocessing to see the result here.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-wrapper">
+    <footer class="footer-container">
+      <div class="footer-brand">
+        <img src="logo.png" alt="Text Corpus Logo" />
+        <span>Text Corpus</span>
+      </div>
+      <div class="footer-links">
+        <a href="main.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <div class="footer-subscribe">
+        <form class="subscribe-form" onsubmit="handleSubscribe(event)">
+          <i class="fas fa-envelope"></i>
+          <input type="email" class="subscribe-input" id="subscribe-email" placeholder="Enter your email" required />
+          <button type="submit" class="subscribe-btn"><i class="fas fa-paper-plane"></i> Subscribe</button>
+        </form>
+      </div>
+      <div class="footer-copy">&copy; 2025 <span>Text Corpus</span>. All rights reserved.</div>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const ALL_OPTS = ["opt-lower", "opt-punct", "opt-stop", "opt-stem", "opt-lemma", "opt-num", "opt-space"];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const menuToggle = document.getElementById('menu-toggle');
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('overlay');
+      const closeSidebarBtn = document.getElementById('close-sidebar');
+
+      menuToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sidebar.classList.add('active');
+        overlay.classList.add('active');
+        document.body.classList.add('no-scroll');
+        menuToggle.innerHTML = '<i class="fas fa-times"></i>';
+      });
+
+      function closeSidebar() {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+        document.body.classList.remove('no-scroll');
+        menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+      }
+
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) closeSidebar();
+      });
+      closeSidebarBtn.addEventListener('click', (e) => { e.stopPropagation(); closeSidebar(); });
+
+      /* File input */
+      document.getElementById("fileInput").addEventListener("change", (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = (ev) => {
+          document.getElementById("text-input").value = ev.target.result;
+          updateCount();
+        };
+        r.onerror = () => toast("Could not read this file. Please try again.");
+        r.readAsText(f);
+      });
+
+      /* Sync feature cards with switches + clear preset on manual change */
+      const syncCards = () => {
+        document.querySelectorAll(".feature-card").forEach((card) => {
+          const input = document.getElementById(card.dataset.target);
+          if (input) card.classList.toggle("on", input.checked);
+        });
+      };
+
+      document.querySelectorAll(".feature-card").forEach((card) => {
+        const input = document.getElementById(card.dataset.target);
+        if (!input) return;
+        card.addEventListener("click", () => {
+          input.checked = !input.checked;
+          syncCards();
+          clearPresetActive();
+        });
+      });
+
+      /* Preset buttons */
+      function setAll(val) {
+        ALL_OPTS.forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.checked = val;
+        });
+      }
+
+      function clearPresetActive() {
+        document.querySelectorAll(".preset-btn").forEach((b) => b.classList.remove("active"));
+      }
+
+      document.querySelectorAll(".preset-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          clearPresetActive();
+          btn.classList.add("active");
+          const preset = btn.dataset.preset;
+          if (preset === "default") {
+            setAll(false);
+            ["opt-lower", "opt-punct", "opt-stop", "opt-stem", "opt-num", "opt-space"].forEach((id) => {
+              const el = document.getElementById(id);
+              if (el) el.checked = true;
+            });
+          } else if (preset === "all-on") {
+            setAll(true);
+          } else {
+            setAll(false);
+          }
+          syncCards();
+          toast(preset === "default" ? "Default preset applied" : preset === "all-on" ? "All options enabled" : "All options disabled");
+        });
+      });
+
+      ALL_OPTS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener("change", () => {
+            clearPresetActive();
+            syncCards();
+          });
+        }
+      });
+
+      syncCards();
+    });
+
+    /* ---------- Helpers ---------- */
+    const $ = (id) => document.getElementById(id);
+    const SAMPLE = "Text mining is the process of deriving high-quality information from text. It involves the discovery of patterns and trends through statistical pattern learning. Preprocessing removes noise such as punctuation, stopwords, and numbers so that algorithms can focus on meaningful tokens.";
+
+    function switchTab(t) {
+      document.querySelectorAll(".input-tab").forEach((x) => x.classList.remove("active"));
+      t.classList.add("active");
+      const txt = t.innerText;
+      if (txt.includes("Upload")) $("fileInput").click();
+      else if (txt.includes("Sample")) { $("text-input").value = SAMPLE; updateCount(); }
+    }
+
+    function updateCount() {
+      const v = $("text-input").value;
+      $("char-count").textContent = v.length;
+      const w = v.toLowerCase().match(/[a-z][a-z'-]*/g) || [];
+      $("s-words").textContent = w.length;
+      $("s-unique").textContent = new Set(w).size;
+    }
+
+    let lastOutput = "";
+
+    function clearAll() {
+      $("text-input").value = "";
+      updateCount();
+      ["s-removed", "s-kept"].forEach((i) => ($(i).textContent = "0"));
+      $("results").innerHTML = '<div class="empty"><i class="fas fa-cog"></i>Add some text and click Apply Preprocessing to see the result here.</div>';
+      lastOutput = "";
+    }
+
+    function toast(m) {
+      const t = $("toast");
+      t.textContent = m;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2200);
+    }
+
+    // --- C++ BACKEND CONNECTION FOR PREPROCESSING ---
+    async function preprocess() {
+      const text = $("text-input").value;
+      if (!text.trim()) {
+        toast("Please enter some text or upload a file first.");
+        return;
+      }
+
+      // Build query parameters based on toggles
+      const query = new URLSearchParams();
+      ALL_OPTS.forEach(opt => {
+        if ($(opt).checked) query.append(opt.replace("opt-", ""), "1");
+      });
+
+      // Show loading state on button
+      const btn = $("btn-process");
+      const originalBtnHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+      btn.disabled = true;
+
+      try {
+        // Fetch from C++ Server
+        const res = await fetch(`http://127.0.0.1:8080/api/preprocess?${query.toString()}`, {
+          method: 'POST',
+          body: text
+        });
+
+        if (!res.ok) throw new Error("Server error");
+        
+        const data = await res.json();
+
+        // Update stats from C++ response
+        $("s-words").textContent = data.original_words;
+        $("s-unique").textContent = data.unique_words;
+        $("s-removed").textContent = data.words_removed;
+        $("s-kept").textContent = data.final_tokens;
+
+        lastOutput = data.processed_text;
+
+        if (!lastOutput.trim()) {
+          $("results").innerHTML = '<div class="empty"><i class="fas fa-circle-info"></i>Everything was filtered out. Try turning off some options.</div>';
+        } else {
+          $("results").innerHTML = `<div class="output-box" id="output-box">${esc(lastOutput)}</div>`;
+        }
+        toast("Preprocessing complete!");
+
+      } catch (err) {
+        console.error(err);
+        alert("Error: C++ Backend is not running. Make sure server.exe is running on port 8080.");
+        $("results").innerHTML = '<div class="empty" style="color: red;"><i class="fas fa-plug"></i>Could not connect to C++ Server.</div>';
+      } finally {
+        btn.innerHTML = originalBtnHtml;
+        btn.disabled = false;
+      }
+    }
+
+    function esc(s) {
+      return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    }
+
+    function copyOutput() {
+      if (!lastOutput) { toast("Process some text first."); return; }
+      navigator.clipboard.writeText(lastOutput).then(
+        () => toast("Output copied"),
+        () => toast("Copy failed. Please copy manually.")
+      );
+    }
+
+    function downloadOutput() {
+      if (!lastOutput) { toast("Process some text first."); return; }
+      const blob = new Blob([lastOutput], { type: "text/plain" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "preprocessed.txt";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function handleSubscribe(e) {
+      e.preventDefault();
+      const i = $("subscribe-email");
+      const v = i.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+        toast("Please enter a valid email address.");
+        return;
+      }
+      toast("Subscribed! Updates will go to " + v);
+      i.value = "";
+    }
+  </script>
+</body>
+</html>
